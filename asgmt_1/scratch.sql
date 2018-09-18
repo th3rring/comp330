@@ -55,7 +55,35 @@ WHERE NOT EXISTS(
   )
 );
 
+SELECT f.class, (
+  SELECT COUNT(s.name)
+  FROM sightings s
+  WHERE EXISTS(
+    SELECT f2.location
+    FROM features f2
+    WHERE f2.location = s.location and f2.class = f.class
+  )
+)
+FROM features f
+GROUP BY f.class;
 
+
+CREATE VIEW sight_names AS
+SELECT DISTINCT s.name
+FROM sightings s
+GROUP BY s.name;
+
+SELECT datename(m, s.sighted) AS month_name, (
+  SELECT COUNT(s2.name)/ CAST((SELECT COUNT(sight_names.name) from sight_names) as FLOAT )
+  FROM sight_names s2
+  WHERE EXISTS(
+    SELECT s3.name
+    FROM sightings s3
+    WHERE s3.name = s2.name and datename(m, s.sighted) = datename(m, s3.sighted)
+  )
+) as count_month
+FROM sightings s
+GROUP BY datename(m, s.sighted);
 
 
 /*
@@ -69,29 +97,43 @@ AND NOT f.location = 'Cerro Noroeste';
 
 SELECT DISTINCT a.person
 FROM sightings a join summits s on a.location = s.location
-WHERE NOT EXISTS(
-  SELECT s2.location
+WHERE (SELECT COUNT(summits.location) from summits) = (
+  SELECT COUNT(s2.location)
   FROM summits s2
-  WHERE NOT a.location = s2.location
+  WHERE EXISTS(
+    SELECT a2.name
+    FROM sightings a2
+    WHERE a2.location = s2.location and a.person = a2.person
+  )
 );
 
 
--- CREATE VIEW lats_top AS
--- SELECT DISTINCT TOP((SELECT COUNT(latitude) FROM features) - 19) f.latitude
--- FROM  features f
--- ORDER BY f.latitude DESC;
---
--- CREATE VIEW lats_ranges AS
--- SELECT f.latitude AS UPPER_LAT, MIN (
---   SELECT TOP (20) f2.latitude
---   FROM features f2
---   WHERE f2.latitude < f.latitude) AS LOWER_LAT
--- FROM lats_top f;
 
-/*CREATE VIEW lats_dist AS
-SELECT DISTINCT f.latitude
-FROM features f;*/
+CREATE VIEW all_flowers AS
+SELECT DISTINCT s.person
+FROM sightings s
+WHERE (SELECT COUNT(sight_names.name) from sight_names) = (
+  SELECT COUNT(s2.name)
+  FROM sight_names s2
+  WHERE EXISTS(
+    SELECT a2.name
+    FROM sightings a2
+    WHERE s2.name = a2.name and s.person = a2.person
+  )
+);
 
+CREATE VIEW first_all_flower AS
+SELECT s.name, s.person, MIN(s.sighted) AS date_sighted
+FROM sightings s
+GROUP BY s.name, s.person;
+
+SELECT MAX(f.date_sighted)
+FROM first_all_flower f
+JOIN all_flowers a ON f.person = a.person
+GROUP BY a.person;
+
+
+-- Question 12
 CREATE VIEW lats_top AS
 SELECT ROW_NUMBER() OVER (ORDER BY f.latitude DESC) as upper_row,
   ROW_NUMBER() OVER (ORDER BY f.latitude DESC) + 19 as lower_row,
