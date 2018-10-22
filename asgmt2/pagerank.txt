@@ -1,0 +1,119 @@
+DROP PROCEDURE page_rank
+
+
+CREATE PROCEDURE page_rank
+  AS BEGIN
+
+  SELECT *
+      INTO #temp_nodes
+  FROM nodes
+
+  SELECT *
+      INTO #temp_edges
+  FROM edges
+
+  DECLARE @num_papers INTEGER
+  SET @num_papers = (SELECT count(paperID) FROM #temp_nodes)
+
+
+  CREATE TABLE #pageranks (
+    paperID INTEGER,
+    pagerank FLOAT,
+    num_citations INTEGER
+  )
+
+  INSERT INTO #pageranks
+  SELECT a.paperID, 1.0/ (SELECT count(paperID) FROM #temp_nodes), (SELECT count(b.citedPaperID) FROM edges b WHERE b.paperID = a.paperID)
+  FROM #temp_nodes a
+
+
+  CREATE TABLE #sinks (
+    paperID INTEGER,
+  )
+
+  INSERT INTO #sinks
+  SELECT DISTINCT a.paperID
+  FROM #temp_nodes a
+  WHERE NOT EXISTS(SELECT b.paperID from #temp_edges b WHERE b.citedPaperID = a.paperID);
+
+--   DELETE FROM #temp_nodes
+--   WHERE EXISTS(SELECT c.paperID FROM #sinks c WHERE #temp_nodes.paperID = c.paperID)
+
+  DECLARE @num_sinks FLOAT
+  SET @num_sinks = (SELECT count(paperID) FROM #sinks)
+
+
+  DECLARE @diff FLOAT
+  SET @diff = 1
+
+  DECLARE @sink_sum float
+
+  CREATE TABLE #rank_sums(
+    paperID INTEGER,
+    sumScore float);
+
+  CREATE TABLE #temp_pageranks (
+    paperID INTEGER,
+    pagerank FLOAT,
+    num_citations INTEGER
+  )
+
+  WHILE @diff > 0.01
+    BEGIN
+
+--     For some reason, this isn't letting me create a view
+    TRUNCATE TABLE #rank_sums;
+    TRUNCATE TABLE #temp_pageranks;
+
+    SET @sink_sum = (SELECT sum(a.pagerank) FROM #pageranks a WHERE a.num_citations = 0);
+
+    INSERT INTO #rank_sums
+    SELECT a.paperID, (
+                       select sum(b.pagerank/b.num_citations)
+                       from #pageranks b
+                       where exists(
+                               SELECT c.citedPaperID
+                               FROM edges c
+                               WHERE c.citedPaperID = a.paperID AND c.paperID = b.paperID)) AS sumScore
+
+    FROM #pageranks a
+    WHERE (SELECT COUNT(c.citedPaperID)
+                       FROM edges c
+                       WHERE c.citedPaperID = a.paperID) > 0
+
+    INSERT INTO #rank_sums
+    SELECT a.paperID, 0 AS sumScore
+    FROM #pageranks a
+    WHERE (SELECT COUNT(c.citedPaperID)
+           FROM edges c
+           WHERE c.citedPaperID = a.paperID) = 0
+
+    INSERT INTO #temp_pageranks
+    SELECT a.paperID, (0.15/@num_papers + 0.85 * ((SELECT b.sumScore
+                                                   FROM #rank_sums b
+                                                   WHERE b.paperID = a.paperID) + @sink_sum/(@num_papers - 1))) AS pagerank,
+           a.num_citations
+    FROM #pageranks a
+
+    SET @diff = (SELECT sum(ABS(a.pagerank - b.pagerank))
+                  FROM #temp_pageranks a JOIN #pageranks b ON a.paperID = b.paperID);
+
+    TRUNCATE TABLE #pageranks;
+    INSERT INTO #pageranks SELECT * FROM #temp_pageranks;
+
+  END
+
+  SELECT TOP (10) a.paperID, b.paperTitle, a.pagerank
+  FROM #pageranks a
+  JOIN nodes b ON b.paperID = a.paperID
+  ORDER BY a.pagerank DESC
+
+--   SELECT sum(a.pagerank)
+--   FROM #pageranks a
+
+END
+  END
+
+
+
+  execute page_rank

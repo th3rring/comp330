@@ -1,0 +1,84 @@
+DROP PROCEDURE connected_components
+
+CREATE PROCEDURE connected_components
+AS BEGIN
+
+  SELECT *
+      INTO #temp_edges
+  FROM edges
+
+  INSERT INTO #temp_edges
+  SELECT citedPaperID, paperID
+  FROM #temp_edges
+
+  SELECT *
+      INTO #temp_nodes
+  FROM nodes
+
+
+  CREATE TABLE #nodes_visited (
+    paperID INTEGER,
+    componentNum INTEGER);
+
+  CREATE  TABLE  #curr_comp (paperID  INTEGER);
+
+  DECLARE @comp_num INTEGER;
+  SET @comp_num = 0;
+
+  WHILE ((SELECT count(paperID) FROM #temp_nodes) > 0)
+    BEGIN
+
+    TRUNCATE TABLE #curr_comp;
+    INSERT INTO #curr_comp
+    SELECT TOP 1 paperID FROM #temp_nodes;
+
+
+    DECLARE @size INTEGER;
+    SET @size = 0;
+
+    DECLARE @new_size INTEGER;
+    SET @new_size = 1;
+
+
+    WHILE (@new_size > @size)
+      BEGIN
+
+      INSERT INTO #curr_comp
+      SELECT DISTINCT a.citedPaperID
+      FROM #temp_edges a
+      WHERE EXISTS(SELECT b.paperID from #curr_comp b WHERE b.paperID = a.paperID) AND NOT
+          EXISTS(SELECT c.paperID from #curr_comp c WHERE c.paperID = a.citedPaperID);
+
+      set @size = @new_size;
+
+      SET @new_size = (SELECT COUNT(paperID) FROM #curr_comp);
+
+    END
+
+    DELETE FROM #temp_nodes
+    WHERE EXISTS(SELECT a.paperID FROM #curr_comp a WHERE #temp_nodes.paperID = a.paperID);
+
+    INSERT INTO #nodes_visited
+    SELECT a.paperID, @comp_num
+    FROM #curr_comp a;
+
+
+
+
+    SET @comp_num = @comp_num + 1;
+
+  END
+
+  SELECT a.paperID, a.paperTitle
+  FROM nodes a
+  JOIN #nodes_visited b ON a.paperID = b.paperID
+  WHERE EXISTS(
+          SELECT c.componentNum
+          FROM #nodes_visited c
+          WHERE (SELECT COUNT(e.paperID) from #nodes_visited e WHERE e.componentNum = c.componentNum GROUP BY e.componentNum) > 4
+                 AND (SELECT COUNT(e.paperID) from #nodes_visited e WHERE e.componentNum = c.componentNum GROUP BY e.componentNum) <= 10
+                 AND c.componentNum = b.componentNum);
+
+END
+
+  execute connected_components
