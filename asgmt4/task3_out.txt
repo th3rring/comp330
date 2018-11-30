@@ -1,0 +1,10 @@
+In order of queries:
+
+comp.graphics
+talk.religion.misc
+alt.atheism
+alt.atheism
+sci.space
+talk.politics.misc
+talk.politics.guns
+talk.politics.mideast
