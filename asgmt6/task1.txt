@@ -1,0 +1,22 @@
+Step 9979 Loss 0.9747778 Correct 55 out of 100
+Step 9980 Loss 1.1071721 Correct 41 out of 100
+Step 9981 Loss 0.92833114 Correct 51 out of 100
+Step 9982 Loss 0.94725037 Correct 56 out of 100
+Step 9983 Loss 0.9822236 Correct 51 out of 100
+Step 9984 Loss 0.9999603 Correct 55 out of 100
+Step 9985 Loss 1.037619 Correct 47 out of 100
+Step 9986 Loss 0.9997174 Correct 52 out of 100
+Step 9987 Loss 0.961101 Correct 54 out of 100
+Step 9988 Loss 0.9791148 Correct 43 out of 100
+Step 9989 Loss 1.037453 Correct 49 out of 100
+Step 9990 Loss 1.0069141 Correct 51 out of 100
+Step 9991 Loss 1.0220523 Correct 45 out of 100
+Step 9992 Loss 1.0066208 Correct 50 out of 100
+Step 9993 Loss 1.017226 Correct 52 out of 100
+Step 9994 Loss 0.9681004 Correct 56 out of 100
+Step 9995 Loss 0.9847112 Correct 54 out of 100
+Step 9996 Loss 1.0475395 Correct 46 out of 100
+Step 9997 Loss 0.9892421 Correct 49 out of 100
+Step 9998 Loss 0.94660306 Correct 54 out of 100
+Step 9999 Loss 0.9562274 Correct 57 out of 100
+
